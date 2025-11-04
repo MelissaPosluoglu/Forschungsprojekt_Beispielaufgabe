@@ -1,0 +1,10 @@
+# -----------------------------
+#  IDE / Editor files
+# -----------------------------
+
+# IntelliJ / PyCharm
+.idea/
+*.iml
+
+# VS Code
+.vscode/

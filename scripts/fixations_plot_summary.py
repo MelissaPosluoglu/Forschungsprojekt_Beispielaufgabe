@@ -4,29 +4,31 @@ from PIL import Image
 import matplotlib
 
 # ----------------------------------------------------
-# 1. Matplotlib-Backend (wichtig für PyCharm/IntelliJ)
+# 1. Configure Matplotlib backend (important for PyCharm/IntelliJ)
 # ----------------------------------------------------
-matplotlib.use("TkAgg")  # öffnet das Plotfenster korrekt außerhalb von JetBrains
+# The "TkAgg" backend ensures that the plot window opens
+# correctly outside JetBrains IDEs (e.g., IntelliJ or PyCharm).
+matplotlib.use("TkAgg")
 
 # ----------------------------------------------------
-# 2. Dateien und Parameter
+# 2. Define dataset and image parameters
 # ----------------------------------------------------
-DATA_FILE = "Literacy-Demo Data Export.tsv"   # Pfad zu deinem Eye-Tracking-Datensatz
-IMAGE_FILE = "Question-pic.PNG"               # Stimulusbild
+DATA_FILE = "../data/Literacy-Demo Data Export.tsv"  # Path to your eye-tracking dataset
+IMAGE_FILE = "../data/Question-pic.PNG"  # Stimulus image file
 
 # ----------------------------------------------------
-# 3. Daten laden
+# 3. Load the dataset
 # ----------------------------------------------------
 df = pd.read_csv(DATA_FILE, sep="\t", low_memory=False)
-print("Spalten im Datensatz:", len(df.columns))
-print("Anzahl Zeilen:", len(df))
+print("Number of columns:", len(df.columns))
+print("Number of rows:", len(df))
 
-# Teilnehmernamen anzeigen
+# Display all participant names found in the dataset
 participants = df["Participant name"].dropna().unique()
-print("Gefundene Teilnehmer:", participants)
+print("Detected participants:", participants)
 
 # ----------------------------------------------------
-# 4. Nur Fixationen auf das gewünschte Bild (ALLE Teilnehmer)
+# 4. Filter fixations on the target image (for ALL participants)
 # ----------------------------------------------------
 mask = (
         (df["Presented Stimulus name"] == "Question-pic") &
@@ -35,40 +37,42 @@ mask = (
 fix = df.loc[mask].copy()
 
 if fix.empty:
-    raise ValueError("Keine Fixationen auf 'Question-pic' gefunden!")
+    raise ValueError("No fixations found on 'Question-pic'!")
 
-print(f"Gesamtanzahl Fixationen: {len(fix)}")
+print(f"Total number of fixations: {len(fix)}")
 
 # ----------------------------------------------------
-# 5. Bild laden und Größe abrufen
+# 5. Load the image and retrieve its size
 # ----------------------------------------------------
 img = Image.open(IMAGE_FILE)
 w, h = img.size
-print(f"Bildgröße: {w} × {h} px")
+print(f"Image size: {w} × {h} px")
 
 # ----------------------------------------------------
-# 6. Koordinaten aus normierten Werten skalieren
+# 6. Convert normalized coordinates to pixel coordinates
 # ----------------------------------------------------
+# The fixation coordinates are normalized (range 0–1).
+# Multiply by image width/height to get pixel positions.
 fix.loc[:, "X_px"] = fix["Fixation point X (MCSnorm)"] * w
 fix.loc[:, "Y_px"] = fix["Fixation point Y (MCSnorm)"] * h
 
 # ----------------------------------------------------
-# 7. Visualisierung (Fixationspunkte aller Teilnehmer)
+# 7. Visualization (fixation points for all participants)
 # ----------------------------------------------------
 plt.figure(figsize=(7, 7))
 plt.imshow(img, extent=[0, w, 0, h])
 
-# Farbpalette für alle Teilnehmer
+# Create a color palette for participants
 colors = ["red", "blue", "green", "orange", "purple", "cyan"]
 color_map = {p: colors[i % len(colors)] for i, p in enumerate(participants)}
 
-# Punkte je Teilnehmer plotten
+# Plot fixation points for each participant
 for participant in participants:
     sub = fix[fix["Participant name"] == participant]
     plt.scatter(
         sub["X_px"],
-        h - sub["Y_px"],  # Y invertieren (oben bleibt oben)
-        s=sub["Gaze event duration"] / 10,  # Punktgröße proportional zur Dauer
+        h - sub["Y_px"],              # Invert Y so that the top stays at the top
+        s=sub["Gaze event duration"] / 10,  # Point size proportional to fixation duration
         alpha=0.6,
         c=color_map[participant],
         edgecolors="white",
@@ -76,30 +80,29 @@ for participant in participants:
         label=participant
     )
 
-# Achsen und Layout
-plt.title("Fixationen aller Teilnehmer auf Question-pic", fontsize=14)
-plt.xlabel("X (px, skaliert)")
-plt.ylabel("Y (px, skaliert)")
+# Configure axes and layout
+plt.title("Fixations of all participants on Question-pic", fontsize=14)
+plt.xlabel("X (pixels, scaled)")
+plt.ylabel("Y (pixels, scaled)")
 plt.xlim(0, w)
 plt.ylim(0, h)
 
 # ----------------------------------------------------
-# 🔹 Legende außerhalb platzieren
+# Place the legend outside the plot
 # ----------------------------------------------------
 plt.legend(
-    title="Teilnehmer",
+    title="Participants",
     loc="center left",
-    bbox_to_anchor=(1.02, 0.5),  # verschiebt sie nach rechts außen
+    bbox_to_anchor=(1.02, 0.5),  # moves the legend to the right side
     fontsize=9,
     title_fontsize=10,
     frameon=True
 )
 
-# Mehr Platz rechts für Legende
+# Add extra space on the right for the legend
 plt.tight_layout(rect=[0, 0, 0.85, 1])
 
 # ----------------------------------------------------
-# 8. Anzeige oder Speicherung
+# 8. Display or save the final visualization
 # ----------------------------------------------------
 plt.show()
-# plt.savefig("fixations_all_participants.png", dpi=150, bbox_inches="tight")
