@@ -3,8 +3,18 @@
 # -----------------------------
 
 # IntelliJ / PyCharm
-.idea/
+#.idea/
 *.iml
 
 # VS Code
 .vscode/
+
+# -----------------------------
+#  Python & Virtual Environment
+# -----------------------------
+
+# Virtuelle Umgebung
+.venv/
+venv/
+ENV/
+env/
