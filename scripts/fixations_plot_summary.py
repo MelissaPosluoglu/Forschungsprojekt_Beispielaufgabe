@@ -13,8 +13,8 @@ matplotlib.use("TkAgg")
 # ----------------------------------------------------
 # 2. Define dataset and image parameters
 # ----------------------------------------------------
-DATA_FILE = "../data/Literacy-Demo Data Export.tsv"  # Path to your eye-tracking dataset
-IMAGE_FILE = "../data/Question-pic.PNG"  # Stimulus image file
+DATA_FILE = "../data/Literacy-Demo Data Export.tsv"  # Path to your dataset
+IMAGE_FILE = "../data/Question-pic.PNG"              # Stimulus image file
 
 # ----------------------------------------------------
 # 3. Load the dataset
@@ -23,12 +23,12 @@ df = pd.read_csv(DATA_FILE, sep="\t", low_memory=False)
 print("Number of columns:", len(df.columns))
 print("Number of rows:", len(df))
 
-# Display all participant names found in the dataset
+# Detect all participants
 participants = df["Participant name"].dropna().unique()
 print("Detected participants:", participants)
 
 # ----------------------------------------------------
-# 4. Filter fixations on the target image (for ALL participants)
+# 4. Filter: Only fixations on the stimulus image
 # ----------------------------------------------------
 mask = (
         (df["Presented Stimulus name"] == "Question-pic") &
@@ -42,7 +42,7 @@ if fix.empty:
 print(f"Total number of fixations: {len(fix)}")
 
 # ----------------------------------------------------
-# 5. Load the image and retrieve its size
+# 5. Load the stimulus image
 # ----------------------------------------------------
 img = Image.open(IMAGE_FILE)
 w, h = img.size
@@ -53,26 +53,28 @@ print(f"Image size: {w} × {h} px")
 # ----------------------------------------------------
 # The fixation coordinates are normalized (range 0–1).
 # Multiply by image width/height to get pixel positions.
-fix.loc[:, "X_px"] = fix["Fixation point X (MCSnorm)"] * w
-fix.loc[:, "Y_px"] = fix["Fixation point Y (MCSnorm)"] * h
+fix["X_px"] = fix["Fixation point X (MCSnorm)"] * w
+fix["Y_px"] = fix["Fixation point Y (MCSnorm)"] * h
 
 # ----------------------------------------------------
-# 7. Visualization (fixation points for all participants)
+# 7. Visualization (Fixation points for all participants)
 # ----------------------------------------------------
-plt.figure(figsize=(7, 7))
-plt.imshow(img, extent=[0, w, 0, h])
+fig, ax = plt.subplots(figsize=(8, 8))  # slightly larger figure for full image
 
-# Create a color palette for participants
+# Display image with correct proportions
+ax.imshow(img, extent=[0, w, 0, h], aspect='auto')
+
+# Assign each participant a color
 colors = ["red", "blue", "green", "orange", "purple", "cyan"]
 color_map = {p: colors[i % len(colors)] for i, p in enumerate(participants)}
 
 # Plot fixation points for each participant
 for participant in participants:
     sub = fix[fix["Participant name"] == participant]
-    plt.scatter(
+    ax.scatter(
         sub["X_px"],
-        h - sub["Y_px"],              # Invert Y so that the top stays at the top
-        s=sub["Gaze event duration"] / 10,  # Point size proportional to fixation duration
+        h - sub["Y_px"],  # Invert Y-axis for correct orientation
+        s=sub["Gaze event duration"] / 10,
         alpha=0.6,
         c=color_map[participant],
         edgecolors="white",
@@ -80,29 +82,29 @@ for participant in participants:
         label=participant
     )
 
-# Configure axes and layout
-plt.title("Fixations of all participants on Question-pic", fontsize=14)
-plt.xlabel("X (pixels, scaled)")
-plt.ylabel("Y (pixels, scaled)")
-plt.xlim(0, w)
-plt.ylim(0, h)
+# ----------------------------------------------------
+# 8. Styling
+# ----------------------------------------------------
+ax.set_title("Fixations of all participants on Question-pic", fontsize=14)
+ax.set_xlabel("X (pixels, scaled)")
+ax.set_ylabel("Y (pixels, scaled)")
+ax.set_xlim(0, w)
+ax.set_ylim(0, h)
 
-# ----------------------------------------------------
-# Place the legend outside the plot
-# ----------------------------------------------------
-plt.legend(
+# Legend outside plot
+ax.legend(
     title="Participants",
-    loc="center left",
-    bbox_to_anchor=(1.02, 0.5),  # moves the legend to the right side
+    loc='center left',
+    bbox_to_anchor=(1.05, 0.5),
     fontsize=9,
     title_fontsize=10,
     frameon=True
 )
 
-# Add extra space on the right for the legend
-plt.tight_layout(rect=[0, 0, 0.85, 1])
+# Ensure layout fits both image and legend
+plt.subplots_adjust(right=0.8, top=0.95, bottom=0.1)
 
 # ----------------------------------------------------
-# 8. Display or save the final visualization
+# 9. Display or save figure
 # ----------------------------------------------------
 plt.show()
